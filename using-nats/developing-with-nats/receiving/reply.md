@@ -1,8 +1,9 @@
 # Replying to a Message
 
-Incoming messages have an optional reply-to field. If that field is set, it will contain a subject to which a reply is expected.
+Incoming messages have an optional reply-to field. If that field is set, it will contain a subject to which a reply is expected.  
 
-For example, the following code will listen for that request and respond with the time.
+传入的消息有一个可选的reply-to字段。如果设置了该字段，则它将包含一个期望回复的主题。 
+For example, the following code will listen for that request and respond with the time.  
 
 {% tabs %}
 {% tab title="Go" %}

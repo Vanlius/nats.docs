@@ -1,10 +1,10 @@
 # Draining Messages Before Disconnect
 
-A feature recently added across the NATS client libraries is the ability to drain connections or subscriptions. Closing a connection, or unsubscribing from a subscription, are generally considered immediate requests. When you close or unsubscribe the library will halt messages in any pending queue or cache for subscribers. When you drain a subscription or connection, it will process any inflight and cached/pending messages before closing.
+A feature recently added across the NATS client libraries is the ability to drain connections or subscriptions. Closing a connection, or unsubscribing from a subscription, are generally considered immediate requests. When you close or unsubscribe the library will halt messages in any pending queue or cache for subscribers. When you drain a subscription or connection, it will process any inflight and cached/pending messages before closing.  
 
 Drain provides clients that use queue subscriptions with a way to bring down applications without losing any messages. A client can bring up a new queue member, drain and shut down the old queue member, all without losing messages sent to the old client. Without drain, there is the possibility of lost messages due to delivery timing.
 
-The libraries can provide drain on a connection or on a subscriber, or both.
+The libraries can provide drain on a connection or on a subscriber, or both.  
 
 For a connection the process is essentially:
 
@@ -12,6 +12,19 @@ For a connection the process is essentially:
 2. Stop new messages from being published
 3. Flush any remaining published messages
 4. Close
+
+最近在 NATS 客户端库中添加的一项新功能是消耗连接或订阅的能力。关闭连接或取消订阅通常被视为即时请求。当您关闭或取消订阅时，库将暂停订阅者任何挂起队列或缓存中的消息。当您使用Drain一个订阅或连接时，它将在关闭之前处理所有正在进行的消息和缓存/待处理的消息。
+
+ 
+Drain 为使用队列订阅的客户端提供了一种在不丢失任何消息的情况下关闭应用程序的方法。客户端可以启动一个新的队列成员，耗尽和关闭旧的队列成员，所有这些都不会丢失发送给旧客户端的消息。如果没有Drain，则有可能由于传递时间而丢失消息。  
+
+库可以对连接或订阅者提供消耗，也可以同时对两者提供消耗。  
+
+对于一个连接，过程本质上是:  
+1. 消耗/消费所有订阅
+2. 停止发布新消息
+3. 刷新所有剩余已发布的消息
+4. 关闭
 
 The API for drain can generally be used instead of close:
 

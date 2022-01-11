@@ -2,9 +2,13 @@
 
 Asynchronous subscriptions use callbacks of some form to notify an application when a message arrives. These subscriptions are usually easier to work with, but do represent some form of internal work and resource usage, i.e. threads, by the library. Check your library's documentation for any resource usage associated with asynchronous subscriptions.
 
-_**Note: For a given subscription, messages are dispatched serially, one message at a time. If your application does not care about processing ordering and would prefer the messages to be dispatched concurrently, it is the application's responsibility to move them to some internal queue to be picked up by threads/go routines.**_
+_**Note: For a given subscription, messages are dispatched serially, one message at a time. If your application does not care about processing ordering and would prefer the messages to be dispatched concurrently, it is the application's responsibility to move them to some internal queue to be picked up by threads/go routines.**_   
 
-The following example subscribes to the subject `updates` and handles the incoming messages:
+异步订阅在消息到达时使用某种形式的回调来通知应用程序。这些订阅通常更容易使用，但确实代表了库的某种内部工作和资源使用机制，例如线程。查看库文档中与异步订阅相关的任何资源使用情况。  
+
+_**注意:对于给定的订阅，消息是串行分发的，一次发送一条消息。如果你的应用程序不关心消息的处理顺序，且期望做到同时分发消息，则应用程序负责将消息移到某个内部队列中，由线程/go协程获取。**_ 
+
+The following example subscribes to the subject `updates` and handles the incoming messages:  
 
 {% tabs %}
 {% tab title="Go" %}

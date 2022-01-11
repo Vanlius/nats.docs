@@ -1,6 +1,9 @@
 # Wildcard Subscriptions
 
-There is no special code to subscribe with a [wildcard subject](../../../nats-concepts/subjects.md#wildcards). Wildcards are a normal part of the subject name. However, it is a common technique to use the subject provided with the incoming message to determine what to do with the message.
+There is no special code to subscribe with a [wildcard subject](../../../nats-concepts/subjects.md#wildcards). Wildcards are a normal part of the subject name. However, it is a common technique to use the subject provided with the incoming message to determine what to do with the message.  
+
+没有使用通配符主题订阅的特殊代码。通配符是主题名称的正常部分。但是，使用传入消息提供的主题来决定如何处理消息是一种常见的技术。
+例如，您可以使用*进行订阅，然后根据实际主题采取行动。
 
 For example, you can subscribe using `*` and then act based on the actual subject.
 

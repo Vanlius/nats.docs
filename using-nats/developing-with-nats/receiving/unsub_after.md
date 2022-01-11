@@ -6,6 +6,10 @@ The message count you provide is the total message count for a subscriber. So if
 
 Auto-unsubscribe is based on the total messages sent to a subscriber, not just the new ones. Most of the client libraries also track the max message count after an auto-unsubscribe request. On reconnect, this enables clients to resend the unsubscribe with an updated total.
 
+NATS提供了一种特殊的取消订阅方式，它配置了消息计数，并在发送到订阅者的消息数量达到该数目时生效。如果只需要一条消息，这种机制非常有用。  
+您提供的消息数是订阅者的总消息数。因此，如果以1的计数取消订阅，服务器将在收到一条消息后停止向该订阅发送消息。如果订阅者已收到一条或多条消息，则立即取消订阅。如果您试图自动取消长时间运行的订阅，那么基于历史记录的操作可能会令人困惑，但对于新订阅来说是合理的。  
+自动取消订阅是基于发送给订阅者的总消息，而不仅仅是新消息。大多数客户端库也会跟踪自动退订请求后的最大消息数。在重新连接时，这使客户端能够重新发送带有更新总数的取消订阅。
+
 The following example shows unsubscribe after a single message:
 
 {% tabs %}

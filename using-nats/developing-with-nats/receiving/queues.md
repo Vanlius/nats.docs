@@ -1,8 +1,9 @@
 # Queue Subscriptions
 
-Subscribing to a [queue group](../../../nats-concepts/core-nats/queue-groups/queue.md) is only slightly different than subscribing to a subject alone. The application simply includes a queue name with the subscription. The server will load balance between all members of the queue group. In a cluster setup, every member has the same chance of receiving a particular message.
-
-Keep in mind that queue groups in NATS are dynamic and do not require any server configuration.
+Subscribing to a [queue group](../../../nats-concepts/core-nats/queue-groups/queue.md) is only slightly different than subscribing to a subject alone. The application simply includes a queue name with the subscription. The server will load balance between all members of the queue group. In a cluster setup, every member has the same chance of receiving a particular message.  
+Keep in mind that queue groups in NATS are dynamic and do not require any server configuration.  
+订阅队列组与单独订阅主题略有不同。应用程序只需要在订阅中包含队列名称。服务器将在队列组的所有成员之间实现负载平衡。在集群设置中，每个成员都有相同的机会接收特定的消息。  
+请记住，NATS中的队列组是动态的，不需要任何服务器配置。
 
 ![](../../../.gitbook/assets/queues.svg)
 
@@ -156,5 +157,6 @@ natsConnection_Destroy(conn);
 {% endtab %}
 {% endtabs %}
 
-If you run this example with the publish examples that send to `updates`, you will see that one of the instances gets a message while the others you run won't. But the instance that receives the message will change.
+If you run this example with the publish examples that send to `updates`, you will see that one of the instances gets a message while the others you run won't. But the instance that receives the message will change.  
+如果您使用发送更新的发布示例运行此示例，您将看到其中一个实例获得消息，而您运行的其他实例没有。但是接收消息的实例将改变。
 

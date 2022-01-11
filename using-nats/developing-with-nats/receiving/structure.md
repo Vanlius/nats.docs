@@ -1,6 +1,8 @@
 # Structured Data
 
-Client libraries may provide tools to help receive structured data, like JSON. The core traffic to the NATS server will always be opaque byte arrays. The server does not process message payloads in any form. For libraries that don't provide helpers, you can always encode and decode data before sending the associated bytes to the NATS client.
+Client libraries may provide tools to help receive structured data, like JSON. The core traffic to the NATS server will always be opaque byte arrays. The server does not process message payloads in any form. For libraries that don't provide helpers, you can always encode and decode data before sending the associated bytes to the NATS client.  
+
+客户端库提供一些工具来帮助接收结构化数据，比如JSON。到NATS服务器的主要流量总是不透明的字节数组。服务器不处理任何形式的消息负载。在不需要库提供帮助下，您也总是可以在相关的字节发送到NATS客户机之前对数据进行编码和解码。  
 
 For example, to receive JSON you could do:
 

@@ -2,7 +2,10 @@
 
 The client libraries provide a means to unsubscribe a previous subscription request.
 
-This process requires an interaction with the server, so for an asynchronous subscription there may be a small window of time where a message comes through as the unsubscribe is processed by the library. Ignoring that slight edge case, the client library will clean up any outstanding messages and tell the server that the subscription is no longer used.
+This process requires an interaction with the server, so for an asynchronous subscription there may be a small window of time where a message comes through as the unsubscribe is processed by the library. Ignoring that slight edge case, the client library will clean up any outstanding messages and tell the server that the subscription is no longer used.  
+
+客户端库提供了一种取消之前订阅的unsubscribe请求。
+这个过程需要与服务器进行交互，因此对于异步订阅，当库处理取消订阅时，可能会有一个小的时间窗口来接收消息。忽略这种轻微的边缘情况，客户端库将清理任何未完成的消息，并告诉服务器此订阅已不再使用。
 
 {% tabs %}
 {% tab title="Go" %}
