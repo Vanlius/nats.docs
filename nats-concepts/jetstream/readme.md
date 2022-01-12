@@ -1,147 +1,141 @@
 # JetStream
 
 ## JetStream
+ 
+NATS 有一个称为 JetStream 的内置分布式数据持久化系统，它在基本的“Core NATS”功能和服务质量之上启用新功能和更高质量的服务。  
+JetStream 内置在 `nats-server` 中，您需要 1 个（或 3 或 5 个，如果您希望对 1 或 2 个同时发生 NATS 服务器故障的容错能力）启用 JetStream 即可应用到所有客户端应用程序。  
+JetStream的创建是为了解决当前流技术中存在复杂性、脆弱性和缺乏可扩展性的问题。有些技术能更好地解决这些问题，但目前的流技术还没有真正的实现多租户、水平可扩展并支持多种部署模型。我们所知道的任何其他技术都不能在相同的安全环境下从边缘扩展到云，同时对操作具有完整的部署可观察性。  
+### 目标  
 
-NATS has a built-in distributed persistence system called [JetStream](../../using-nats/jetstream/develop_jetstream.md) which enables new functionalities and higher qualities of service on top of the base 'Core NATS' functionalities and qualities of service.
+JetStream的开发目标如下:
 
-JetStream is built-in to `nats-server` and you only need 1 (or 3 or 5 if you want fault-tolerance against 1 or 2 simultaneous NATS server failures) of your NATS server(s) to be JetStream enabled for it to be available to all the client applications.
+* 该系统必须易于配置和操作，并且易于观察。
+* 系统必须符合NATS 2.0安全模型，保证系统的安全性和可操作性。
+* 该系统必须横向扩展，并适用于高摄取率。
+* 系统必须支持多用例。
+* 系统必须支持自愈，且始终可用。
+* 系统必须具有更接近core NATS 的 API。
+* 系统必须允许NATS消息成为流的一部分。
+* 系统必须显示与有效负载无关的行为。
+* 系统不能存在第三方依赖关系。
 
-JetStream was created to solve the problems identified with streaming in technology today - complexity, fragility, and a lack of scalability. Some technologies address these better than others, but no current streaming technology is truly multi-tenant, horizontally scalable, and supports multiple deployment models. No other technology that we are aware of can scale from edge to cloud under the same security context while having complete deployment observability for operations.
+## JetStream支持的功能  
 
-### Goals
+### Streaming: 发布者和订阅者之间的时序解耦  
 
-JetStream was developed with the following goals in mind:
+租户发布/订阅消息是一种发布者和订阅者之间存在的时间耦合：订阅者仅接收主动连接到消息系统时发布的消息。消息传递系统提供发布者和订阅者之间时序解耦的传统方式是通过“持久化订阅者”，或有时候采用“队列”的方式，但这两种方式都不完美:
 
-* The system must be easy to configure and operate and be observable.
-* The system must be secure and operate well with NATS 2.0 security models.
-* The system must scale horizontally and be applicable to a high ingestion rate.
-* The system must support multiple use cases.
-* The system must self-heal and always be available.
-* The system must have an API that is closer to core NATS.
-* The system must allow NATS messages to be part of a stream as desired.
-* The system must display payload agnostic behavior.
-* The system must not have third party dependencies.
+* 需要在发布消息之前创建持久订阅者  
+* 队列用于对消息的工作负载分配和消费，而不是用作消息重放的机制。  
 
-## Functionalities enabled by JetStream
+然而，现在已经设计出一种提供时序解耦的新方法并已成为“主流”：streaming。流获取发布（存储）在一个（或多个）主题上的消息，允许客户端应用程序随时创建“订阅者”（即 JetStream 消费者）以重放（replay）或消费（consume）的方式读取存储在流中的所有或部分消息。  
 
-### Streaming: temporal decoupling between the publishers and subscribers
+#### 重放策略  
 
-One of the tenants of basic publish/subscribe messaging is that there is a temporal coupling between the publishers and the subscribers: subscribers only receive the messages that are published when they are actively connected to the messaging system. The traditional way for messaging systems to provide temporal decoupling of the publishers and subscribers is through the 'durable subscriber' functionality or sometimes through 'queues', but neither one is perfect:
+JetStream消费者支持多个重放策略，取决于消费应用程序是否想要接收:
 
-* durable subscribers need to be created _before_ the messages get published
-* queues are meant for workload distribution and consumption, not to be used as a mechanism for message replay.
+* 当前存储在流中的所有消息，这意味着完整的消息“重放”，您可以选择“重放策略”（即重放的速度）为： 
+  * 实时(意思是消息以尽可能快的速度传递给消费者)
+  * 原始(意思是消息以它们被发布到流中的速度传递给消费者，这可能非常有用，例如对于分段生产流量)
+* 存储在流中的最后一条消息，或每个主题的最后一条消息(因为流可以捕获多个主题)
+* 从一个指定的序列号开始
+* 从指定的开始时间开始
 
-However, nowadays a new way to provide this temporal de-coupling has been devised and has become 'mainstream': streaming. Streams capture and store messages published on one (or more) subject and allow client applications to create 'subscribers' (i.e. JetStream consumers) at any time to 'replay' (or consume) all or some of the messages stored in the stream.
+#### 流的保留策略和限制
 
-#### Replay policies
+在'Core NATS'基础上实现了新的功能和更高的服务质量。实际上，流不能“永远”增长，因此JetStream支持多种数据保留策略，并能够对流的大小施加限制。  
 
-JetStream consumers support multiple replay policies, depending on whether the consuming application wants to receive either:
+**限制**
 
-* _all_ of the messages currently stored in the stream, meaning a complete 'replay' and you can select the 'replay policy' (i.e. the speed of the replay) to be either:
-  * _instant_ (meaning the messages are delivered to the consumer as fast as it can take them)
-  * _original_ (meaning the messages are delivered to the consumer at the rate they were published into the stream, which can be very useful for example for staging production traffic)
-* the _last_ message stored in the stream, or the _last message for each subject_ (as streams can capture more than one subject)
-* starting from a specific _sequence number_
-* starting from a specific _start time_
+你可以对流（stream）做以下的限制
 
-#### Retention policies and limits
+* 消息在流中的最长生命周期  
+* 流的总大小（以byte为单位）  
+* 消息在流中保存的最大条数  
+* 单条消息的最大大小  
+* 你可以指定一个丢弃策略:当达到一个限制，一个新消息被发布到流中时，你可以选择丢弃当前流中最早的或最新的消息，以便为新消息腾出空间。  
+* 您还可以对任何给定时间点为流定义的消费者数量设置限制  
 
-It enables new functionalities and higher qualities of service on top of the base 'Core NATS' functionality. Practically speaking, streams can't always just keep growing 'forever' and therefore JetStream support multiple retention policies as well as the ability to impose size limits on streams.
+**保留策略**
 
-**Limits**
+你可以为每个流设置你想要的留存策略:  
 
-You can impose the following limits on a stream
+* limits (默认)  
+* _interest_ (只要流上有消费者，消息就会一直保存在流中)  
+* _work queue_ (流用作共享队列，当消息被消费时，将从流中删除消息)  
 
-* Maximum message age
-* Maximum total stream size (in bytes)
-* Maximum number of messages in the stream
-* Maximum individual message size
-* You can specify a discard policy: when a limit is reached and a new message is published to the stream you can choose to discard either the oldest or the newest message currently in the stream in order to make room for that new message.
-* You can also set limits on the number of consumers that can be defined for the stream at any given point in time
+### 分布式持久化存储
 
-**Retention policy**
+您可以根据需求以选择消息存储的持久性和弹性  
 
-You can choose what kind of retention you want for each stream:
+* Memory（内存存储）
+* File（文件存储）
+* Replication (多副本) (在nats服务器副本1 (none), 2, 3之间实现数据容错) 
 
-* _limits_ (the default)
-* _interest_ (messages are kept in the stream for as long as there are consumers on the stream)
-* _work queue_ (the stream is used as a shared queue and messages are removed from it as they are consumed)
+JetStream使用NATS优化的RAFT分布式仲裁算法，在NATS服务器集群中做持久服务，即使面临拜占庭式的故障，也能立即保证服务的一致性。  
 
-### Persistent distributed storage
+JetStream还可以为存储的消息提供加密。  
 
-You can choose the durability as well as the resilience of the message storage according to your needs
-
-* Memory storage
-* File storage
-* Replication (1 (none), 2, 3) between nats servers for Fault Tolerance
-
-JetStream uses a NATS optimized RAFT distributed quorum algorithm to distribute the persistence service between nats servers in a cluster while maintaining immediate consistency even in the face of Byzantine failures.
-
-JetStream can also provide encryption at rest of the messages being stored.
-
-In JetStream the configuration for storing messages is defined separately from how they are consumed. Storage is defined in a [_Stream_](streams.md) and consuming messages is defined by multiple [_Consumers_](consumers.md).
+在JetStream中，存储消息的配置与如何消费消息的配置是分开定义的。存储消息是在流中定义，而消费消息是在消费者定义。   
 
 #### Stream replication factor
 
-A stream's replication factor (R, often referred to as the number 'Replicas') determines how many places it is stored allowing you to tune to balance risk with resource usage and performance. A stream that is easily rebuilt or temporary might be memory based with a R=1 and a stream that can tolerate some downtime might be file based R-1.
+流的复制因子(R，通常称为“Replicas”的数量)决定了它存储的位置数量， 允许您对其进行调优，以平衡资源使用和性能的风险。 易于重建或临时的流可能是基于内存的 R=1，而可以容忍一些停机时间的流可能是基于文件的 R-1。  
 
-Typical usage to operate in typical outages and balance performance would be a filed based stream with R=3. A highly resilient, but less performant and more expensive configuration is R=5, the replication factor limit.
+在一般情况下考虑节点故障和均衡性能的流，配置R=3。具有高弹性但性能较差且成本更高的配置是 R=5，即副本的最大限制值。   
 
 Rather than defaulting to the maximum, we suggest selecting the best option based on use case behind the stream. This optimizes resource usage to create a more resilient system at scale.
 
-* Replicas=1 - Cannot operate during an outage of the server servicing the stream. Highly performant.
-* Replicas=2 - No significant benefit at this time. We recommend using Replicas=3 instead.
-* Replicas=3 - Can tolerate loss of one server servicing the stream. An ideal balance between risk and performance.
-* Replicas=4 - No significant benefit over Replicas=3 except marginally in a 5 node cluster.
-* Replicas=5 - Can tolerate simultaneous loss of two servers servicing the stream. Mitigates risk at the expense of performance.
+我们建议基于流的实际用例来配置最佳选项，而不是默认采用最大副本。这优化了资源的使用，以创建一个更有弹性规模的系统。
 
-#### Mirroring between streams
+* Replicas=1 - 在提供stream服务的服务器中断（故障）期间无法运行。高性能。
+* Replicas=2 - 目前没有明显的好处。我们建议使用Replicas=3代替。
+* Replicas=3 - 可以容忍丢失一台为流提供服务的服务器。风险与性能之间的理想平衡。
+* Replicas=4 - 与Replicas=3相比，除了在5个节点的集群中略有不同外，没有显著的好处。
+* Replicas=5 - 能够容忍同时丢失两台流服务器。以牺牲性能为代价降低风险。  
 
-JetStream also allows server administrators to easily mirror streams, for example between different JetStream domains in order to offer disaster recovery. You can also define a stream as one of the sources for another stream.
+#### 流镜像
 
-### De-coupled flow control
+JetStream还允许服务器管理员轻松地对流做镜像，例如在不同的JetStream域之间提供容灾。您还可以将一个流定义为另一个流的数据源。  
+### De-coupled流控制
 
-JetStream provides de-coupled flow control over streams, the flow control is not 'end to end' where the publisher(s) are limited to publish no faster than the slowest of all the consumers (i.e. the lowest common denominator) can receive, but is instead happening individually between each client application (publishers or consumers) and the nats server.
+JetStream提供了对流的解耦合流控制，流控制不是“端到端”的，在这种流控制中，发布者被限制发布的速度不超过所有消费者(即最小公分母)可以接收的最慢速度，而是在每个客户端应用程序(发布者或消费者)和nats服务器之间单独发生。
 
-When using the JetStream publish calls to publish to streams there is an acknowledgement mechanism between the publisher and the nats server, and you have the choice of making synchronous or asynchronous (i.e. 'batched') JetStream publish calls.
+当使用JetStream publish调用来发布消息到流时，在发布者和nats服务器之间有一个确认机制，并且你可以选择同步或异步（'批处理')JetStream调用方式发布。  
 
-On the subscriber side the sending of messages from the nats server to the client applications receiving or consuming messages from streams is also flow controlled.
+在订阅端，客户端应用程序发送消息或接收、消费nats服务器中流的消息也同样受到流控制。 
 
-### Exactly once message delivery
+### 仅一次消息投递（交付）  
 
-Because publications to streams using the JetStream publish calls are acknowledged by the server the base quality of service offered by streams is '_at least once_', meaning that while reliable and normally duplicate free there are some specific failure scenarios that could result in a publishing application believing (wrongly) that a message was not published successfully and therefore publishing it again, and there are failure scenarios that could result in a client application's consumption acknowledgement getting lost and therefore in the message being re-sent to the consumer by the server. Those failure scenarios while being rare and even difficult to reproduce do exist and can result in perceived 'message duplication' at the application level.
+因为使用JetStream流的发布的消息会被服务器确认，流提供的消息确认为“至少一次”，这意味着，投递的消息可靠且不会产生重复，但有一些特定场景会失败，可能导致消息发布应用程序(错误地)认为消息没有成功发布，因此再次发布消息，还有一些失败的情况可能导致客户端应用程序的消费确认（ack）丢失，从而导致消息被服务器重新发送给消费者。    
 
-Therefore, JetStream also offers an '_exactly once_' quality of service. For the publishing side it relies on the publishing application attaching a unique message or publication id in a message header and on the server keeping track of those ids for a configurable rolling period of time in order to detect the publisher publishing the same message twice. For the subscribers a _double_ acknowledgement mechanism is used to avoid a message being erroneously re-sent to a subscriber by the server after some kinds of failures.
+因此，JetStream也提供了“exactly once”语义。对于发布者，它依赖发布应用程序在消息头中附加一个唯一的消息或publish id，服务器上在配置的滚动时间段内跟踪这些ID，以便检测发布者两次发布相同的消息。对于订阅者，使用双重确认机制来避免消息在某些类型的故障后产生的消息重发。  
 
-### Consumers
+### 消费者
 
-JetStream [consumers](consumers.md) are 'views' on a stream, they are subscribed to (or pulled) by client applications to receive copies of (or to consume if the stream is set as a working queue) messages stored in the stream.
-
+JetStream消费者是一个流上的“视图”，它们被客户端应用程序订阅(或拉取)来接收存储在流中的消息副本(或如果流设置为工作队列，则使用)。  
 #### Fast push consumers
 
-Client applications can choose to use fast un-acknowledged `push` (ordered) consumers to receive messages as fast as possible (for the selected replay policy) on a specified delivery subject or to an inbox. Those consumers are meant to be used to 'replay' rather than 'consume' the messages in a stream.
+客户端应用程序可以选择使用消息非确认的推模式消费者，以最快的方式（选择的replay策略）接收指定投递主题或inbox中的消息，这些消费者是用来的'重放'消息而不是消费流中的消息。  
 
-#### Horizontally scalable pull consumers with batching
+#### 批量处理功能的水平伸缩拉（模式）消费者
 
-Client applications can also use and share `pull` consumers that are demand-driven, support batching and must explicitly acknowledge message reception and processing which means that they can be used to consume (i.e. use the stream as a distributed queue) as well as process the messages in a stream.
+客户端应用程序还可以使用和共享需求驱动的拉消费者，支持批处理，并且必须确认消息接收和处理，这意味着它们可以用于消费（即使用流作为分布式队列）以及处理在流中的消息。  
+拉模式消费者应该在应用程序之间共享（就像队列组一样），以便为流中消息的处理或消费提供简单透明的水平可伸缩性，而不必担心定义分区或担心容错。  
+注意：使用拉消费者并不意味着您不能将更新（发布到流中的新消息）消息实时“推送”到您的应用程序，因为您可以将（合理的）超时传递给消费者的 Fetch 调用，和调用它在一个循环中。     
 
-Pull consumers can and are meant to be shared between applications (just like queue groups) in order to provide easy and transparent horizontal scalability of the processing or consumption of messages in a stream without having (for example) to worry about having to define partitions or worry about fault-tolerance.
+#### 消费者确认机制
+ 
+虽然您可以使用不确认消息语义的消费者以换取消息传递的速率，但大多数处理都不是幂等的，您需要更高质量的消息投递语义(例如自动从可能导致某些消息未被处理或被处理多次的各种故障场景中恢复的功能)和使用带消息确认的消费者。JetStream支持一种以上的消息确认:  
 
-Note: using pull consumers doesn't mean that you can't get updates (new messages published into the stream) 'pushed' in real time to your application, as you can pass a (reasonable) timeout to the consumer's Fetch call and call it in a loop.
+* 消费者支持所有的消息确认，直到序列号全部被确。消费者提供最高质量的服务，但需要明确确认每条消息的接收和处理，以及服务器在重新传递特定消息之前等待确认的最长时间（发送到附加到消费者）  
+* 你可以发回拒绝/否定确认  
+* 您甚至可以发送正在处理的确认（以表明您仍在处理有问题的消息并且需要更多时间才能确认或确认它）  
 
-#### Consumer acknowledgements
+### K/V 存储
 
-While you can decide to use un-acknowledged consumers trading quality of service for the fastest possible delivery of messages, most processing is not idem-potent and requires higher qualities of service (such as the ability to automatically recover from various failure scenarios that could result in some messages not being processed or being processed more than once) and you will want to use acknowledged consumers. JetStream supports more than one kind of acknowledgement:
-
-* Some consumers support acknowledging _all_ the messages up to the sequence number of the message being acknowledged, some consumers provide the highest quality of service but require acknowledging the reception and processing of each message explicitly as well as the maximum amount of time the server will wait for an acknowledgement for a specific message before re-delivering it (to another process attached to the consumer)
-* You can also send back _negative_ acknowledgements
-* You can even send _in progress_ acknowledgements (to indicate that you are still processing the message in question and need more time before acking or nacking it)
-
-### K/V store
-
-JetStream is a persistence layer, and streaming is only one of the functionalities built on top of that layer.
-
-Another functionality (typically not available in or even associated with messaging systems) is the JetStream Key/Value store: the ability to store, retrieve and delete _value_ messages associated with a _key_, to watch (listen) for changes happening to that key and even to retrieve a history of the values (and deletions) that have happened on a particular key.
+JetStream是一个持久层，而流只是构建在该层之上的功能之一。
+另一个功能(通常在消息传递系统中不可用，甚至与消息传递系统毫不相关)是JetStream键/值存储:存储、检索和删除与键关联的值消息的能力，监视(监听)发生在该键上的更改，甚至检索特定键上发生的值(和删除)的历史记录。
 
 **Legacy**
 

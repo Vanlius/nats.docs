@@ -45,7 +45,7 @@ This is the default policy. It means that each individual message must be acknow
 
 ### AckNone
 
-You do not have to ack any messages, the server will assume ack on delivery. 
+You do not have to ack any messages, the server will assume ack on delivery.   
 您不必确认任何消息，服务器将假定消息投递都已ack确认。
 
 ### AckAll
@@ -112,7 +112,7 @@ When consuming from a stream with a wildcard subject, this allows you to select 
 
 ## MaxAckPending
 
-MaxAckPending implements a simple form of _one-to-many_ flow control. It sets the maximum number of messages without an acknowledgement that can be outstanding, once this limit is reached message delivery will be suspended. It cannot be used with AckNone ack policy. This maximum number of pending acks applies for _all_ of the consumer's subscriber processes. A value of -1 means there can be any number of pending acks (i.e. no flow control).  
+MaxAckPending implements a simple form of _one-to-many_ flow control. It sets the maximum number of messages without an acknowledgement that can be outstanding, once this limit is reached message delivery will be suspended. It cannot be used with AckNone ack policy. This maximum number of pending acks applies for _all_ of the consumer's subscriber processes. A value of -1 means there can be any number of pending acks (i.e. no flow control).   
 MaxAckPending实现了一种简单的一对多流控制形式。它设置没有确认的消息的最大数量，一旦达到这个限制，消息传递将被暂停。它不能与AckNone ack策略一起使用。这个挂起的ack的最大数目适用于使用者的所有订阅者进程。值-1表示可以有任意数量的挂起ack(即没有流量控制)。
 
 ### Note about push and pull consumers: 
@@ -123,7 +123,7 @@ MaxAckPending 的一对多流控制功能仅对push模式消费者有用。对�
 ## FlowControl
 
 This flow control setting is to enable or not another form of flow control in parallel to MaxAckPending. But unlike MaxAckPending it is a _one-to-one_ flow control that operates independently for each individual subscriber to the consumer. It uses a sliding-window flow-control protocol whose attributes (e.g. size of the window) are _not_ user adjustable.  
-此流量控制设置启用/不启用与MaxAckPending 并行的另一种形式的流量控制。但与 MaxAckPending 不同的是，它是一对一的流量控制，为消费者的每个订阅独立运行。它使用滑动窗口流控制协议，其属性（例如窗口大小）不是用户可调整的。
+FlowControl流控制可以配置启用/不启用，除MaxAckPending方式外的另一种流量控制形式。但与 MaxAckPending 不同的是，它是一对一的流量控制，为消费者的每个订阅独立运行。它使用滑动窗口流控制协议，其属性（例如窗口大小）不是用户可调整的。
 
 ## IdleHeartbeat
 

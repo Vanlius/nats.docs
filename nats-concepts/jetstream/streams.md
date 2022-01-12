@@ -1,32 +1,32 @@
 # Streams
 
-Streams are 'message stores', each stream defines how messages are stored and what the limits (duration, size, interest) of the retention are. Streams consume normal NATS subjects, any message published on those subjects will be captured in the defined storage system. You can do a normal publish to the subject for unacknowledged delivery, though it better to use the JetStream publish calls instead as the JetStream server will reply with an acknowledgement that it was successfully stored.
+流是“消息存储”，每个流定义了消息如何存储以及保留的限制(持续时间、大小、兴趣（流存在消费者及长期维持）)。流使用常规的NATS主题，在这些主题上发布的任何消息都能在jetstream流定义的存储系统（file、memory）中获取。对于不需要做消息确认的消息投递，您可以对subject做普通的发布，不过建议使用JetStream发布消息，因为JetStream服务器将回复一个确认信息（ack），确认已成功存储。
 
 ![Orders](../../.gitbook/assets/streams-and-consumers-75p.png)
 
-In the diagram above we show the concept of storing all `ORDERS.*` in the Stream even though there are many types of order related messages. We'll show how you can selectively consume subsets of messages later. Relatively speaking the Stream is the most resource consuming component so being able to combine related data in this manner is important to consider.
+在上图中，我们展示了将所有 ORDERS.* 存储在 Stream 中的概念，即使有许多类型的订单相关消息。稍后我们将展示如何选择性地使用消息子集。相对而言，Stream 是最消耗资源的组件，因此能够以这种方式组合相关数据是非常重要的。  
 
-Streams can consume many subjects. Here we have `ORDERS.*` but we could also consume `SHIPPING.state` into the same Stream should that make sense \(not shown here\).
+流可以消费很多主题。这里我们用的是 ORDERS.*  但如果有必要的话，我们也可以将 SHIPPING.state 消费到同一个 Stream 中。   
 
-Streams support various retention policies - they can be kept based on limits like max count, size or age but also more novel methods like keeping them as long as any Consumers have them unacknowledged, or work queue like behavior where a message is removed after first ack.
+流支持各种保存策略 —— 可以基于最大消息数量、流大小或最大时长等限制来保留，但也可以采用更有意思的策略，如只要任何消费者存在就保留stream，或者类似于工作队列的方式，stream在获得消费者ack后删除消息。
 
-Streams support deduplication using a `Nats-Msg-Id` header and a sliding window within which to track duplicate messages. See the [Message Deduplication](../../using-nats/jetstream/model_deep_dive.md#message-deduplication) section.
+流支持使用 `Nats-Msg-Id` 标头和用于跟踪滑动窗口中重复消息的重复数据删除。请参阅消息重复数据删除部分。
 
-When defining Streams the items below make up the entire configuration of the set.
+当定义Streams时，整个配置由以下配置项组成：
 
 | Item | Description |
 | :--- | :--- |
-| Name | A name for the Stream that may not have spaces, tabs, period \(`.`\), greater than \(`>`\) or asterisk \(`*`\). See [naming](../../running-a-nats-service/nats_admin/jetstream_admin/naming.md). |
-| Storage | The type of storage backend, `File` and `Memory` |
-| Subjects | A list of subjects to consume, supports wildcards |
-| Replicas | How many replicas to keep for each message in a clustered JetStream, maximum 5 |
-| MaxAge | Maximum age of any message in the Stream, expressed in nanoseconds. |
-| MaxBytes | How many bytes the Stream may contain. Adheres to Discard Policy, removing oldest or refusing new messages if the Stream exceeds this number of messages. |
-| MaxMsgs | How many messages may be in a Stream. Adheres to Discard Policy, removing oldest or refusing new messages if the Stream exceeds this size |
-| MaxMsgSize | The largest message that will be accepted by the Stream |
-| MaxConsumers | How many Consumers can be defined for a given Stream, `-1` for unlimited |
-| NoAck | Disables acknowledging messages that are received by the Stream |
-| Retention | How message retention is considered, `LimitsPolicy` \(default\), `InterestPolicy` or `WorkQueuePolicy` |
-| Discard | When a Stream reaches it's limits either, `DiscardNew` refuses new messages while `DiscardOld` \(default\) deletes old messages |
-| Duplicates | The window within which to track duplicate messages, expressed in nanoseconds. |
+| Name | 流的名称，不能有空格、制表符、句点(.)、大于(>)或星号(*)。看到命名。|
+| Storage | 数据存储类型为`File` 和 `Memory`。 |
+| Subjects | 要消费的主题列表，支持通配符。 |
+| Replicas | 在集群JetStream中，每个消息要保留多少副本，最多5份。|
+| MaxAge | 流中任何消息的最大时间，以纳秒（ns）为单位。 |
+| MaxBytes | 流可能包含多少字节。遵循丢弃策略，如果流超过此字节数，则删除旧消息或拒绝新消息。 |
+| MaxMsgs | 流中可能有多少条消息。遵循丢弃策略，如果流超过此消息数，则删除旧消息或拒绝新消息 |
+| MaxMsgSize | 流接受的单条消息最大大小 |
+| MaxConsumers | 指定一个流可以定义多少个consumer， -1表示无限|
+| NoAck | 禁用 确认流接收到的消息 |
+| Retention | 指定流中消息的保存策略，`LimitsPolicy(默认)`，`InterestPolicy`或`WorkQueuePolicy`|
+| Discard | 当一个流达到它的限制策略后，`DiscardNew`拒绝新消息，而`DiscardOld(默认)`删除旧消息 |
+| Duplicates | 用于跟踪重复消息的窗口，以纳秒表示。 |
 
