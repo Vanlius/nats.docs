@@ -2,14 +2,14 @@
 
 ## Prerequisite: enabling JetStream
 
-If you are running a local `nats-server` stop it and restart it with JetStream enabled using `nats-server -js` (if that's not already done)
+如果你正在运行一个本地的nats-server，停止它并使用nats-server-js重启以开启JetStream功能的支持 (如果还没有完成)  
 
-You can then check that JetStream is enabled by using 
+然后你应该检查是否启用了JetStream   
 
 ```shell
 nats account info
 ```
-which should output something like
+输出如下：  
 ```
 Connection Information:
 
@@ -30,7 +30,7 @@ JetStream Account Information:
         Consumers: 0 of Unlimited 
 ```
 
-If you see the below then JetStream is _not_ enabled
+如果你看到的是以下内容，则未启用JetStream  
 
 ```text
 JetStream Account Information:
@@ -39,11 +39,9 @@ JetStream Account Information:
 ```
 
 ## 1. Creating a stream
-
-Let's start by creating a stream to capture and store the messages published on the subject "foo".
-
-Enter `nats stream add <Stream name>` (in the examples below we will name the stream "my_stream"), then enter "foo" as the subject name and hit return to use the defaults for all the other stream attributes:
-
+ 
+首先创建一个stream来记录和存储发布在“foo”主题上的消息。  
+输入`nats stream add < stream name>`(在下面的例子中，我们将stream命名为“my_stream”)，然后输入“foo”作为主题名，然后按回车键使用stream所有其他属性的默认值:  
 ```shell
 nats stream add my_stream
 ```
@@ -88,8 +86,7 @@ State:
      Active Consumers: 0
 ```
 
-You can then check the information about the stream you just created:
-
+然后你可以检查你刚刚创建的stream信息:  
 ```shell
 nats stream info my_stream
 ```
@@ -123,19 +120,17 @@ State:
 
 ## 2. Publish some messages into the stream
 
-Let's now start a publisher
-
+现在我们创建一个发布者  
 ```shell
 nats pub foo --count=1000 --sleep 1s "publication #{{Count}} @ {{TimeStamp}}"
 ```
 
-As messages are being published on the subject "foo" they are also captured and stored in the stream, you can check that by using `nats stream info my_stream` and even look at the messages themselves using `nats stream view my_stream`
-
+当消息被发布在“foo”主题上时，它们也被记录并存储在流中，你可以通过使用“nats stream info my_stream”来检查，甚至可以使用“nats stream view my_stream”来查看消息本身。
 ## 3. Creating a consumer
 
-Now at this point if you create a 'Core NATS' (i.e. non-streaming) subscriber to listen for messages on the subject 'foo', you will _only_ receive the messages being published after the subscriber was started, this is normal and expected for the basic 'Core NATS' messaging. In order to receive a 'replay' of all the messages contained in the stream (including those that were published in the past) we will now create a 'consumer'
+如果现在你创建一个“Core NATS”(即非流式传输)订阅者来监听“foo”主题上的消息，你只会收到订阅者在启动后发布的消息，这对基于“core NATS”的消息传递是正常的且在预期内。为了接收流中所有消息（包括过去发布的消息）的“重放”，我们现在将创建一个“消费者”    
 
-We can administratively create a consumer using the 'nats consumer add <Consumer name>' command, in this example we will name the consumer "pull_consumer", and we will leave the delivery subject to 'nothing' (i.e. just hit return at the prompt) because we are creating a 'pull consumer' and select `all` for the start policy, you can then just use the defaults and hit return for all the other prompts. The stream the consumer is created on should be the stream 'my_stream' we just created above.
+我们可以使用“nats consumer add”命令以管理方式创建消费者，在本例中，我们将消费者命名为“pull_consumer”，并将交付主题设为“nothing”（即在提示符处按回车键）， 因为我们创建的是一个“pull消费者”，所以start policy选择all，然后其他所有的选项你可以使用回车键设置为默认值。创建消费者的流应该是我们刚刚在上面创建的流'my_stream'。  
 
 ```shell
 nats consumer add
@@ -174,26 +169,23 @@ State:
             Waiting Pulls: 0 of maximum 512
 ```
 
-You can check on the status of any consumer at any time using `nats consumer info` or view the messages in the stream using `nats stream view my_stream` or even remove individual messages from the stream using `nats stream rmm`
-
+您随时可以使用 `nats consumer info` 查看任意消费者的状态，或使用 `nats stream my_stream` 查看stream的相关消息，甚至使用`nats stream rmm` 从stream中删除单条消息  
 ## 3. Subscribing from the consumer
 
-Now that the consumer has been created and since there are messages in the stream we can now start subscribing to the consumer:
-
+现在已经创建了消费者，且stream中有消息，我们可以开始用消费者订阅消息：  
 ```shell
 nats consumer next my_stream pull_consumer --count 1000
 ```
+从第一条消息（过去发布）开始打印流中的所有消息，并在新消息发布时继续打印，直到达到指定的消费总数。
 
-This will print out all the messages in the stream starting with the first message (which was published in the past) and continuing with new messages as they are published until the count is reached.
-
-Note that in this example we are creating a pull consumer with a 'durable' name, this means that the consumer can be shared between as many consuming processes as you want. For example instead of running a single `nats consumer next` with a count of 1000 messages you could have started two instances of `nats consumer` each with a message count of 500 and you would see the consumption of the messages from the consumer distributed between those instances of `nats`
+请注意，在此示例中，我们正在创建一个具有“durable”名称的pull消费者，这意味着消费者可以在任意数量的消费进程之间共享。例如，与消费总数设置为1000的单个nats消费者不同，你可以启动两个nats消费者实例，每个实例的消息总数设置为500，这些消费者的消息分布在这些nats实例之间。  
 
 #### Replaying the messages again
 
-Once you have iterated over all the messages in the stream with the consumer, you can get them again by simply creating a new consumer or by deleting that consumer (`nats consumer rm`) and re-creating it (`nats consumer add`).
+一旦你使用消费者消费完流中的所有消息，可以通过创建一个新消费者或删除该消费者（`nats consumer rm`）并重新创建它（`nats consumer add`）来再次获取流中的数据（replay）。
 
 ## 4. Cleaning up
 
-You can clean up a stream (and release the resources associated with it (e.g. the messages stored in the stream)) using `nats stream purge`
+您可以使用`nats stream purge` 清理stream（并释放与其关联的资源（例如存储在流中的消息））
 
-You can also delete a stream (which will also automatically delete all of the consumers that may be defined on that stream) using `nats stream rm`
+您还可以使用`nats stream rm` 删除stream（这也将自动删除可能在该流上定义的所有消费者)

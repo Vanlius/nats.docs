@@ -2,14 +2,13 @@
 
 ## Prerequisite: enabling JetStream
 
-If you are running a local `nats-server` stop it and restart it with JetStream enabled using `nats-server -js` (if that's not already done)
+如果你正在运行一个本地的`nats-server`，停止它并使用`nats-server-js`重启以开启JetStream功能的支持 (如果还没有完成)
 
-You can then check that JetStream is enabled by using
-
+然后你应该检查是否启用了JetStream  
 ```shell
 nats account info
-``` 
-Which should output something like:
+```
+应该输出如下内容：  
 ```
 Connection Information:
 
@@ -30,8 +29,7 @@ JetStream Account Information:
         Consumers: 0 of Unlimited 
 ```
 
-If you see the below instead then JetStream is _not_ enabled
-
+如果你看到的是以下内容，则未启用JetStream
 ```text
 JetStream Account Information:
 
@@ -40,12 +38,11 @@ JetStream Account Information:
 
 ## Creating a KV bucket
 
-Just like you have to create streams before you can use them, you need to first create a 'KV bucket' using `nats kv add <KV Bucket Name>`:
-
+就像你必须先创建流才能使用它们一样，您首先需要使用`nats kv add <KV Bucket Name>` 创建一个`KV bucket`：  
 ```shell
 nats kv add my_kv
 ```
-which should output:
+输出如下：
 ```text
 my_kv Key-Value Store Status
 
@@ -60,21 +57,21 @@ my_kv Key-Value Store Status
 
 ## Storing a value
 
-Now that we have a bucket, we can use it to 'put' (store) values at keys:
+现在有了一个bucket，我们可以用'put'(存储)来存储一个值到key:  
 
 ```shell
 nats kv put my_kv Key1 Value1
 ```
 
-which should return `Value1`
+应该返回`Value1`  
 ## Getting a value
 
-Now that we have value stored at key "Key1" we can retrieve that value with a 'get':
+现在，我们已经在“Key1”中存储了值，我们可以使用“get”来获取该值:  
 
 ```shell
 nats kv get my_kv Key1
 ```
-which should output
+输出如下：  
 ```
 my_kv > Key1 created @ 12 Oct 21 20:08 UTC
 
@@ -84,29 +81,29 @@ Value1
 
 ## Deleting a value
 
-You can always delete a Key/Value entry by using `nats kv del my_kv Key1`
+你可以通过使用`nats kv del my_kv Key1`来删除一个Key/Value键值对。  
 
 ## Watching a K/V Store
 
-A functionality (normally not provided by Key/Value stores) is available with the NATS KV Store is the ability to 'watch' a bucket (or a particular key in that bucket) and receive real-time updates to changes in the store.
+NATS KV Store提供了一种功能(通常key/value存储不提供)，可以“监控”一个bucket(或bucket中的指定的key)，并接收实时更新在存储中的更改。  
 
-For example run `nats kv watch my_kv`: this will start a watcher on the bucket we have just created earlier. If you followed this walkthrough the last operation that happened on the key is that it was deleted. Because by default the KV bucket is set with a history size of one (i.e. it keeps only the last change) and the last operation on the bucket was a delete of the value associated with the key "Key1" that is the only thing that get received by the watcher:
-
+例如，运行`nats kv watch my_kv`:在我们刚刚创建的bucket上启动一个监控（观察者）。如果你按照此例子运行，则该key上发生的最后操作是该key已被删除。 因为默认情况下，KV bucket的历史大小设置为1(即只保留最后一次更改)，并且bucket上的最后一次操作是删除“Key1”的值，这是监控（观察者）唯一收到的操作。  
 ```shell
 nats kv watch my_kv
 ```
-which should output
+输出如下:  
 ```
 [2021-10-12 13:15:03] DEL my_kv > Key1
 ```
 
-Keep that `nats kv watch` running and in another window do another 'put'
+保持`nats kv watch`运行并到另一个窗口对my_key做`put`操作
+
 
 ```shell
 nats kv put my_kv Key1 Value2
 ```
 
-As soon as that command is run you will see that put event received by the watcher:
+以上操作被执行后，你会得到观察者接收的put事件:  
 
 ```shell
 [2021-10-12 13:25:14] PUT my_kv > Key1: Value2
@@ -114,8 +111,7 @@ As soon as that command is run you will see that put event received by the watch
 
 ## Cleaning up
 
-Once you are finished playing, you can easily delete the KV bucket and release the resource associated with it by using:
-
+以上操作执行完成后，你可以使用以下命令轻松的删除KV bucket，并释放与其关联的资源：
 ```shell
 nats kv rm my_kv
 ```

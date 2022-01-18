@@ -1,25 +1,24 @@
 # Example
 
-Consider this architecture
+参考以下架构
 
 ![Orders](<../../.gitbook/assets/streams-and-consumers-75p (1).png>)
 
-While it is an incomplete architecture it does show a number of key points:
+虽然它不是一个完整的架构，但确实展示了许多关键特征： 
 
-* Many related subjects are stored in a Stream
-* Consumers can have different modes of operation and receive just subsets of the messages
-* Multiple Acknowledgement modes are supported
+* 多个主题都存储在一个stream中
+* 消费者以不同的消费模式接收消息的子集（ORDER.*） 
+* 支持多种消息确认（ack）方式  
 
-A new order arrives on `ORDERS.received`, gets sent to the `NEW` Consumer who, on success, will create a new message on `ORDERS.processed`. The `ORDERS.processed` message again enters the Stream where a `DISPATCH` Consumer receives it and once processed it will create an `ORDERS.completed` message which will again enter the Stream. These operations are all `pull` based meaning they are work queues and can scale horizontally. All require acknowledged delivery ensuring no order is missed.
+一条新订单消息到达`ORDERS.received`主题，被消费者`NEW`成功处理后，再发送订单消息到`ORDERS.processed`主题，消费者`DISPATCH`接收处理`ORDERS.processed` 上的订单消息，依次将订单完成消息发送到`ORDERS.completed`。这些操作都是基于`pull`模式的，也就意味着工作队列是能水平扩展的。所有的订单消息都需要做确认（ack），以确保不丢失任何订单消息。  
 
-All messages are delivered to a `MONITOR` Consumer without any acknowledgement and using Pub/Sub semantics - they are pushed to the monitor.
+使用Pub/Sub语义和不做任何消息交付确认（ack）将所有的订单消息投递到`MONITOR`消费者，它们被推送到用户（监视器）。    
 
-As messages are acknowledged to the `NEW` and `DISPATCH` Consumers, a percentage of them are Sampled and messages indicating redelivery counts, ack delays and more, are delivered to the monitoring system.
+当消息被 `NEW` 和 `DISPATCH` 消费者确认时，其中将重新传递计数、确认延迟等消息的百分比采样数据发送到监控系统。  
 
 ## Example Configuration
 
-[Additional documentation](../clustering/administration.md) introduces the `nats` utility and how you can use it to create, monitor, and manage streams and consumers, but for completeness and reference this is how you'd create the ORDERS scenario. We'll configure a 1 year retention for order related messages:
-
+[附加文档](../clustering/administration.md)介绍了nats实用工具，以及如何使用它来创建、监控和管理stream和消费者，但为了完整和参考，这是创建ORDERS场景的方法。我们将为订单相关信息配置1年保留:  
 ```bash
 nats stream add ORDERS --subjects "ORDERS.*" --ack --max-msgs=-1 --max-bytes=-1 --max-age=1y --storage file --retention limits --max-msg-size=-1 --discard=old
 nats consumer add ORDERS NEW --filter ORDERS.received --ack explicit --pull --deliver all --max-deliver=-1 --sample 100
